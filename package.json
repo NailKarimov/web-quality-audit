@@ -1,0 +1,29 @@
+{
+  "name": "web-quality-audit",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Web quality audit of Practice Software Testing (Toolshop), a training web shop: the same Playwright suite runs against the clean build and the build with planted bugs.",
+  "license": "MIT",
+  "scripts": {
+    "test": "playwright test",
+    "test:bugs": "playwright test --project=bugs",
+    "test:clean": "playwright test --project=clean",
+    "test:api": "playwright test tests/api",
+    "test:a11y": "playwright test tests/a11y",
+    "test:smoke": "playwright test tests/smoke",
+    "allure:gen": "allure generate ./allure-results -o ./allure-report --clean",
+    "report": "allure open ./allure-report",
+    "typecheck": "tsc --noEmit",
+    "format": "prettier --write .",
+    "format:check": "prettier --check ."
+  },
+  "devDependencies": {
+    "@axe-core/playwright": "^4.13.0",
+    "@playwright/test": "^1.63.0",
+    "@types/node": "^26.6.2",
+    "allure-commandline": "^2.46.1",
+    "allure-playwright": "^3.12.2",
+    "prettier": "^3.9.10",
+    "typescript": "^7.0.2"
+  }
+}

@@ -1,0 +1,103 @@
+name: Tests
+
+# The suite runs against a shared public training site, so it is not started for every pull request:
+# on push to main, once a week and by hand. One worker keeps the load on the site low.
+on:
+  push:
+    branches: [main]
+  schedule:
+    - cron: '20 5 * * 1' # Mondays 05:20 UTC
+  workflow_dispatch:
+    inputs:
+      project:
+        description: 'Which build to test'
+        type: choice
+        options: [both, bugs, clean]
+        default: both
+
+permissions:
+  contents: write # publish the report to the gh-pages branch
+
+concurrency:
+  group: tests-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+
+      - uses: actions/setup-java@v6 # Allure CLI needs Java
+        with:
+          distribution: temurin
+          java-version: 21
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Check formatting and types
+        run: |
+          npm run format:check
+          npm run typecheck
+
+      - name: Install Google Chrome
+        timeout-minutes: 10
+        run: npx playwright install --with-deps chrome
+
+      # Headed Chrome in a virtual display: the hosted site's Cloudflare check stops headless browsers.
+      - name: Run tests
+        id: tests
+        continue-on-error: true
+        env:
+          PROJECT: ${{ github.event.inputs.project || 'both' }}
+        run: |
+          case "$PROJECT" in
+            bugs)  xvfb-run -a npx playwright test --project=bugs ;;
+            clean) xvfb-run -a npx playwright test --project=clean ;;
+            *)     xvfb-run -a npx playwright test ;;
+          esac
+
+      - name: Restore Allure history
+        if: always()
+        run: |
+          git fetch origin gh-pages --depth=1 || exit 0
+          git worktree add gh-pages-old origin/gh-pages || exit 0
+          if [ -d gh-pages-old/history ]; then
+            mkdir -p allure-results/history
+            cp -r gh-pages-old/history/. allure-results/history/
+          fi
+
+      - name: Generate Allure report
+        if: always()
+        run: npx allure generate allure-results -o allure-report --clean
+
+      - name: Write a run summary
+        if: always()
+        run: node scripts/summary.mjs >> "$GITHUB_STEP_SUMMARY" || true
+
+      - name: Publish report to GitHub Pages
+        if: always() && github.ref == 'refs/heads/main'
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_branch: gh-pages
+          publish_dir: allure-report
+
+      - name: Upload Playwright HTML report
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: playwright-report
+          path: playwright-report
+          retention-days: 14
+
+      - name: Fail the job if tests failed
+        if: steps.tests.outcome == 'failure'
+        run: exit 1
