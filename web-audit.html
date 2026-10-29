@@ -1,0 +1,779 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <title>Toolshop Web Audit</title>
+    <meta name="claude:viewport-fit-sides" content="cover" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Barlow+Semi+Condensed:wght@600;700&family=Source+Sans+3:wght@400;600&family=JetBrains+Mono:wght@400;600&display=swap"
+    />
+    <style>
+      body {
+        margin: 0;
+      }
+      /* Layout: one column up to 1000px — header with the two-build idea, a defect × build matrix you can filter, then the method in four steps. Workshop palette: steel grey with a safety-orange accent. */
+      :root {
+        --bg: #f3f4f6;
+        --surface: #ffffff;
+        --line: #d5d9df;
+        --fg: #1c2430;
+        --muted: #5a6575;
+        --accent: #d9620f;
+        --accent-soft: #fbe7d8;
+        --pass: #1d8a52;
+        --pass-soft: #def2e6;
+        --fail: #c43a31;
+        --fail-soft: #f8e1df;
+        --display: 'Barlow Semi Condensed', 'Arial Narrow', system-ui, sans-serif;
+        --body: 'Source Sans 3', system-ui, -apple-system, 'Segoe UI', sans-serif;
+        --mono: 'JetBrains Mono', ui-monospace, Consolas, monospace;
+      }
+      @media (prefers-color-scheme: dark) {
+        :root:not([data-theme='light']) {
+          --bg: #12161c;
+          --surface: #1a2029;
+          --line: #2c3542;
+          --fg: #e5e9ef;
+          --muted: #9aa6b6;
+          --accent: #f08a3e;
+          --accent-soft: #3a2616;
+          --pass: #4cc283;
+          --pass-soft: #163024;
+          --fail: #f07a70;
+          --fail-soft: #3a1c1a;
+          color-scheme: dark;
+        }
+      }
+      :root[data-theme='dark'] {
+        --bg: #12161c;
+        --surface: #1a2029;
+        --line: #2c3542;
+        --fg: #e5e9ef;
+        --muted: #9aa6b6;
+        --accent: #f08a3e;
+        --accent-soft: #3a2616;
+        --pass: #4cc283;
+        --pass-soft: #163024;
+        --fail: #f07a70;
+        --fail-soft: #3a1c1a;
+        color-scheme: dark;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        background: var(--bg);
+        color: var(--fg);
+        font: 16px/1.55 var(--body);
+      }
+      .wrap {
+        max-width: 1000px;
+        margin: 0 auto;
+        padding-left: max(16px, env(safe-area-inset-left, 0px));
+        padding-right: max(16px, env(safe-area-inset-right, 0px));
+        padding-block: 28px 64px;
+        display: grid;
+        gap: 28px;
+      }
+      h1,
+      h2 {
+        font-family: var(--display);
+        font-weight: 700;
+        line-height: 1.1;
+        margin: 0;
+        text-wrap: balance;
+        letter-spacing: 0.01em;
+      }
+      h1 {
+        font-size: clamp(30px, 5vw, 44px);
+      }
+      h2 {
+        font-size: 26px;
+      }
+      p {
+        margin: 0;
+        max-width: 68ch;
+      }
+      .muted {
+        color: var(--muted);
+      }
+      .mono {
+        font-family: var(--mono);
+        font-size: 13px;
+      }
+      .eyebrow {
+        font-family: var(--mono);
+        font-size: 12px;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        color: var(--accent);
+      }
+      header {
+        display: grid;
+        gap: 12px;
+      }
+      .top {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 12px;
+        flex-wrap: wrap;
+      }
+      .lang {
+        display: flex;
+        gap: 4px;
+      }
+      button,
+      select {
+        font: inherit;
+      }
+      .lang button,
+      .chip {
+        border: 1px solid var(--line);
+        background: var(--surface);
+        color: var(--fg);
+        border-radius: 6px;
+        padding: 4px 10px;
+        cursor: pointer;
+        font-size: 14px;
+      }
+      .lang button[aria-pressed='true'],
+      .chip[aria-pressed='true'] {
+        background: var(--fg);
+        color: var(--bg);
+        border-color: var(--fg);
+      }
+      button:focus-visible,
+      select:focus-visible {
+        outline: 2px solid var(--accent);
+        outline-offset: 2px;
+      }
+
+      .builds {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 12px;
+      }
+      .build {
+        background: var(--surface);
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        padding: 14px 16px;
+        display: grid;
+        gap: 4px;
+        min-width: 0;
+      }
+      .build b {
+        font-family: var(--display);
+        font-size: 20px;
+      }
+      .build .mono {
+        overflow-wrap: anywhere;
+        color: var(--muted);
+      }
+      .build.bugs {
+        border-top: 4px solid var(--accent);
+      }
+      .build.clean {
+        border-top: 4px solid var(--pass);
+      }
+      @media (max-width: 560px) {
+        .builds {
+          grid-template-columns: minmax(0, 1fr);
+        }
+      }
+
+      .legend {
+        display: flex;
+        gap: 16px;
+        flex-wrap: wrap;
+        font-size: 14px;
+        color: var(--muted);
+      }
+      .mark {
+        display: inline-grid;
+        place-items: center;
+        width: 26px;
+        height: 22px;
+        border-radius: 4px;
+        font-family: var(--mono);
+        font-size: 12px;
+        font-weight: 600;
+      }
+      .mark.f {
+        background: var(--fail-soft);
+        color: var(--fail);
+      }
+      .mark.p {
+        background: var(--pass-soft);
+        color: var(--pass);
+      }
+      .filters {
+        display: flex;
+        gap: 6px;
+        flex-wrap: wrap;
+      }
+      .table-wrap {
+        overflow-x: auto;
+        background: var(--surface);
+        border: 1px solid var(--line);
+        border-radius: 8px;
+      }
+      table {
+        border-collapse: collapse;
+        width: 100%;
+        min-width: 620px;
+        font-size: 15px;
+      }
+      th,
+      td {
+        text-align: left;
+        padding: 9px 12px;
+        border-bottom: 1px solid var(--line);
+        vertical-align: top;
+      }
+      th {
+        font-family: var(--mono);
+        font-size: 12px;
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+        color: var(--muted);
+        font-weight: 600;
+      }
+      tbody tr {
+        cursor: pointer;
+      }
+      tbody tr:hover,
+      tbody tr[aria-expanded='true'] {
+        background: var(--bg);
+      }
+      td.c {
+        text-align: center;
+      }
+      .sev {
+        font-family: var(--mono);
+        font-size: 12px;
+        padding: 2px 7px;
+        border-radius: 999px;
+        border: 1px solid var(--line);
+        white-space: nowrap;
+      }
+      .sev.major {
+        border-color: var(--fail);
+        color: var(--fail);
+      }
+      .sev.trivial {
+        color: var(--muted);
+      }
+      tr.detail td {
+        background: var(--bg);
+        cursor: default;
+        font-size: 14px;
+      }
+      tr.detail .mono {
+        color: var(--muted);
+      }
+      .count {
+        font-family: var(--mono);
+        font-size: 13px;
+        color: var(--muted);
+        font-variant-numeric: tabular-nums;
+      }
+
+      .steps {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 14px;
+      }
+      .step {
+        background: var(--surface);
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        padding: 16px;
+        display: grid;
+        gap: 8px;
+        align-content: start;
+        min-width: 0;
+      }
+      .step h3 {
+        font-family: var(--display);
+        font-size: 20px;
+        margin: 0;
+      }
+      pre {
+        margin: 0;
+        background: var(--bg);
+        border: 1px solid var(--line);
+        border-radius: 6px;
+        padding: 10px 12px;
+        overflow-x: auto;
+        font: 13px/1.5 var(--mono);
+      }
+      @media (max-width: 700px) {
+        .steps {
+          grid-template-columns: minmax(0, 1fr);
+        }
+      }
+      footer {
+        font-size: 14px;
+        color: var(--muted);
+      }
+      a {
+        color: var(--accent);
+      }
+    </style>
+  </head>
+  <body>
+    <div class="wrap">
+      <header>
+        <div class="top">
+          <span class="eyebrow" data-i18n="eyebrow">web-quality-audit · Playwright + TypeScript</span>
+          <div class="lang" role="group" aria-label="Language">
+            <button id="lang-en" type="button" aria-pressed="false">EN</button>
+            <button id="lang-ru" type="button" aria-pressed="false">RU</button>
+          </div>
+        </div>
+        <h1 data-i18n="h1">A web audit with a reference build</h1>
+        <p class="muted" data-i18n="lead">
+          Practice Software Testing publishes its Toolshop twice: clean, and with bugs planted by its authors.
+          One suite of 43 tests runs on both. A defect counts only when its check fails on the bug build and
+          passes on the clean one.
+        </p>
+      </header>
+
+      <section class="builds" aria-label="Builds">
+        <div class="build bugs">
+          <b data-i18n="bugsName">Bug build: system under test</b
+          ><span class="mono">with-bugs.practicesoftwaretesting.com</span
+          ><span class="muted" data-i18n="bugsNote">defect checks are expected to fail here</span>
+        </div>
+        <div class="build clean">
+          <b data-i18n="cleanName">Clean build: reference</b
+          ><span class="mono">practicesoftwaretesting.com</span
+          ><span class="muted" data-i18n="cleanNote">the same checks must pass here</span>
+        </div>
+      </section>
+
+      <section style="display: grid; gap: 12px" aria-labelledby="m-h">
+        <h2 id="m-h" data-i18n="matrixH">17 defects, checked on both builds</h2>
+        <div class="legend">
+          <span
+            ><span class="mark f">✗</span>
+            <span data-i18n="legF">check fails: the defect is there</span></span
+          >
+          <span><span class="mark p">✓</span> <span data-i18n="legP">check passes</span></span>
+          <span data-i18n="legClick">Click a row for steps and the test.</span>
+        </div>
+        <div class="filters" role="group" aria-label="Filter" id="filters"></div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th data-i18n="thSev">Severity</th>
+                <th data-i18n="thArea">Area</th>
+                <th data-i18n="thSum">Defect</th>
+                <th class="c">bugs</th>
+                <th class="c">clean</th>
+              </tr>
+            </thead>
+            <tbody id="rows"></tbody>
+          </table>
+        </div>
+        <span class="count" id="count"></span>
+      </section>
+
+      <section style="display: grid; gap: 14px" aria-labelledby="s-h">
+        <h2 id="s-h" data-i18n="howH">How it works</h2>
+        <div class="steps">
+          <div class="step">
+            <h3 data-i18n="s1h">Two projects, one suite</h3>
+            <p data-i18n="s1p">
+              Each test runs as project bugs and project clean. Only the addresses differ.
+            </p>
+            <pre>
+projects: [
+  { name: 'bugs',  use: { buildName: 'bugs' } },
+  { name: 'clean', use: { buildName: 'clean' } },
+]</pre>
+          </div>
+          <div class="step">
+            <h3 data-i18n="s2h">Pin the defect</h3>
+            <p data-i18n="s2p">
+              knownBug(id) knows which builds have the defect and calls test.fail() there. Everywhere else the
+              same assertion must pass. When the authors fix it, the run turns red.
+            </p>
+            <pre>
+knownBug('WQA-3');
+const prices = await shop.prices();
+expect(prices).toEqual(
+  [...prices].sort((a, b) =&gt; a - b));</pre>
+          </div>
+          <div class="step">
+            <h3 data-i18n="s3h">Check properties, not data</h3>
+            <p data-i18n="s3p">
+              The site is shared and its data changes all day. Checks assert order, matching and structure:
+              the list equals itself sorted, every result mentions the term, each label belongs to its own
+              field.
+            </p>
+          </div>
+          <div class="step">
+            <h3 data-i18n="s4h">Get past the bot check politely</h3>
+            <p data-i18n="s4p">
+              Cloudflare stops headless browsers and challenges reloads. Tests run headed Chrome in xvfb, load
+              the shop once and then move inside the Angular app like a user. One worker, no writes, a weekly
+              run.
+            </p>
+          </div>
+        </div>
+      </section>
+
+      <footer>
+        <span data-i18n="foot">Source and full bug reports:</span>
+        <a href="https://github.com/NailKarimov/web-quality-audit"
+          >github.com/NailKarimov/web-quality-audit</a
+        >
+        · <a href="https://nailkarimov.github.io/web-quality-audit/">Allure</a>
+      </footer>
+    </div>
+
+    <script>
+      const DEFAULT_LANG = 'en';
+      const D = [
+        [
+          'WQA-1',
+          'major',
+          'nav',
+          ['bugs'],
+          'The "Home" menu link opens the contact page',
+          'Пункт меню «Home» открывает страницу контактов',
+          'Go to Contact, click Home: the link is #/contact and the page stays.',
+          'Перейти в Contact, нажать Home: ссылка #/contact, страница не меняется.',
+          'tests/functional/navigation.spec.ts',
+        ],
+        [
+          'WQA-3',
+          'major',
+          'func',
+          ['bugs'],
+          'Sort directions are reversed for price and name',
+          'Направления сортировки по цене и имени перепутаны',
+          'Price (Low - High) lists 125.23 … 46.50; Name (A - Z) starts with Wood Saw.',
+          '«Price (Low - High)» даёт 125.23 … 46.50; «Name (A - Z)» начинается с Wood Saw.',
+          'tests/functional/search-sort.spec.ts',
+        ],
+        [
+          'WQA-6',
+          'major',
+          'a11y',
+          ['bugs'],
+          'Images without alt text, search and sort controls without labels',
+          'Картинки без alt, поиск и сортировка без подписей',
+          'axe image-alt (11 images), label, select-name: WCAG 1.1.1, 4.1.2.',
+          'axe image-alt (11 картинок), label, select-name: WCAG 1.1.1, 4.1.2.',
+          'tests/a11y/axe.spec.ts',
+        ],
+        [
+          'WQA-7',
+          'major',
+          'a11y',
+          ['bugs', 'clean'],
+          'Icon-only buttons without an accessible name',
+          'Кнопки-иконки без доступного имени',
+          'Login form icon button on both builds; quantity +/− on the bug build. WCAG 4.1.2.',
+          'Кнопка-иконка в форме входа на обеих сборках; +/− количества на сборке с багами.',
+          'tests/a11y/axe.spec.ts',
+        ],
+        [
+          'WQA-10',
+          'major',
+          'forms',
+          ['bugs'],
+          'Registration: the labels "Country" and "State" are swapped',
+          'Регистрация: подписи «Country» и «State» перепутаны',
+          "getByLabel('Country') finds the state field #state.",
+          "getByLabel('Country') находит поле штата #state.",
+          'tests/functional/forms.spec.ts',
+        ],
+        [
+          'WQA-16',
+          'major',
+          'a11y',
+          ['bugs'],
+          'Login: Tab from the e-mail field jumps over the password field',
+          'Вход: Tab из поля e-mail перескакивает пароль',
+          'Focus goes to login-submit instead of password. WCAG 2.4.3.',
+          'Фокус уходит на кнопку входа, а не на пароль. WCAG 2.4.3.',
+          'tests/a11y/keyboard.spec.ts',
+        ],
+        [
+          'WQA-4',
+          'minor',
+          'links',
+          ['bugs'],
+          'A category link points to #/category/undefined',
+          'Ссылка категории ведёт на #/category/undefined',
+          'Open the Categories menu and read the link targets.',
+          'Открыть меню Categories и посмотреть адреса ссылок.',
+          'tests/functional/navigation.spec.ts',
+        ],
+        [
+          'WQA-5',
+          'minor',
+          'ui',
+          ['bugs'],
+          'The shop logo broken.png answers 404 on every page',
+          'Логотип broken.png отвечает 404 на каждой странице',
+          'Image requests from the page: broken.png → 404.',
+          'Запрос картинок со страницы: broken.png → 404.',
+          'tests/ui/images.spec.ts',
+        ],
+        [
+          'WQA-8',
+          'minor',
+          'a11y',
+          ['bugs', 'clean'],
+          'Filter lists put other elements directly inside <ul>',
+          'В списках фильтра внутри <ul> не только <li>',
+          'axe list rule, .checkbox > ul. WCAG 1.3.1.',
+          'Правило axe list, .checkbox > ul. WCAG 1.3.1.',
+          'tests/a11y/axe.spec.ts',
+        ],
+        [
+          'WQA-9',
+          'minor',
+          'a11y',
+          ['bugs'],
+          '"Out of stock" labels and footer links below AA contrast',
+          'Метки «Out of stock» и ссылки подвала ниже контраста AA',
+          'axe color-contrast. WCAG 1.4.3.',
+          'axe color-contrast. WCAG 1.4.3.',
+          'tests/a11y/axe.spec.ts',
+        ],
+        [
+          'WQA-11',
+          'minor',
+          'seo',
+          ['bugs'],
+          'No meta description and no canonical link',
+          'Нет meta description и canonical',
+          'The clean build has both.',
+          'На чистой сборке есть оба.',
+          'tests/seo/seo.spec.ts',
+        ],
+        [
+          'WQA-12',
+          'minor',
+          'seo',
+          ['bugs'],
+          'No <h1> on the home page, two on a product page',
+          'На главной нет <h1>, на странице товара их два',
+          'Product page: "Combination Pliers" and "Reltded products".',
+          'Страница товара: «Combination Pliers» и «Reltded products».',
+          'tests/seo/seo.spec.ts',
+        ],
+        [
+          'WQA-13',
+          'minor',
+          'seo',
+          ['bugs'],
+          'Every page has the same <title>',
+          'У всех страниц одинаковый <title>',
+          '"Practice Software Testing - Toolshop - v5.0 with bugs" everywhere.',
+          'Везде «Practice Software Testing - Toolshop - v5.0 with bugs».',
+          'tests/seo/seo.spec.ts',
+        ],
+        [
+          'WQA-14',
+          'minor',
+          'content',
+          ['bugs'],
+          'Contact subjects include "Error 101: Subject not found"',
+          'В темах формы контактов есть «Error 101: Subject not found»',
+          'Also "Error 202: Translation error".',
+          'А также «Error 202: Translation error».',
+          'tests/functional/forms.spec.ts',
+        ],
+        [
+          'WQA-15',
+          'minor',
+          'func',
+          ['bugs'],
+          'The language switcher is missing',
+          'Нет переключателя языка',
+          'The clean build offers EN, DE, ES, FR, NL, TR, EL.',
+          'На чистой сборке: EN, DE, ES, FR, NL, TR, EL.',
+          'tests/functional/language.spec.ts',
+        ],
+        [
+          'WQA-17',
+          'minor',
+          'func',
+          ['bugs'],
+          'A search without results shows an empty grid and no message',
+          'Поиск без результатов: пустая сетка без сообщения',
+          'Search for zzqx-no-such-tool.',
+          'Искать zzqx-no-such-tool.',
+          'tests/functional/search-sort.spec.ts',
+        ],
+        [
+          'WQA-2',
+          'trivial',
+          'content',
+          ['bugs'],
+          'Spelling: Contakt, Serch, Sorth, Reltded products',
+          'Опечатки: Contakt, Serch, Sorth, Reltded products',
+          'Also "Blliling Adress" in checkout and "Massage" in the contact form.',
+          'Ещё «Blliling Adress» в оформлении и «Massage» в форме контактов.',
+          'tests/content/spelling.spec.ts',
+        ],
+      ];
+      const AREAS = {
+        nav: ['Navigation', 'Навигация'],
+        func: ['Functional', 'Функции'],
+        a11y: ['Accessibility', 'Доступность'],
+        forms: ['Forms', 'Формы'],
+        links: ['Links', 'Ссылки'],
+        ui: ['Images', 'Картинки'],
+        seo: ['SEO', 'SEO'],
+        content: ['Content', 'Контент'],
+      };
+      const T = {
+        en: {},
+        ru: {
+          eyebrow: 'web-quality-audit · Playwright + TypeScript',
+          h1: 'Веб-аудит с эталонной сборкой',
+          lead: 'Practice Software Testing публикует свой Toolshop дважды: чистым и с багами, которые посадили авторы. Один набор из 43 тестов идёт на обеих сборках. Дефект засчитывается, только если проверка падает на сборке с багами и проходит на чистой.',
+          bugsName: 'Сборка с багами: объект тестирования',
+          bugsNote: 'здесь проверки дефектов должны падать',
+          cleanName: 'Чистая сборка: эталон',
+          cleanNote: 'здесь те же проверки должны проходить',
+          matrixH: '17 дефектов, проверены на обеих сборках',
+          legF: 'проверка падает: дефект есть',
+          legP: 'проверка проходит',
+          legClick: 'Нажмите на строку: шаги и тест.',
+          thSev: 'Важность',
+          thArea: 'Область',
+          thSum: 'Дефект',
+          howH: 'Как это устроено',
+          s1h: 'Два проекта, один набор',
+          s1p: 'Каждый тест запускается в проекте bugs и в проекте clean. Отличаются только адреса.',
+          s2h: 'Закрепить дефект',
+          s2p: 'knownBug(id) знает, на каких сборках есть дефект, и вызывает там test.fail(). На остальных та же проверка обязана пройти. Когда авторы исправят баг, прогон станет красным.',
+          s3h: 'Проверять свойства, а не данные',
+          s3p: 'Сайт общий, данные на нём меняются весь день. Проверки смотрят на порядок, совпадение и структуру: список равен себе отсортированному, каждый результат содержит слово, каждая подпись относится к своему полю.',
+          s4h: 'Вежливо пройти защиту от ботов',
+          s4p: 'Cloudflare не пускает headless-браузеры и проверяет перезагрузки. Тесты идут в Chrome с окном внутри xvfb, открывают магазин один раз и дальше ходят внутри Angular-приложения, как пользователь. Один поток, никаких записей, прогон раз в неделю.',
+          foot: 'Код и полные баг-репорты:',
+          all: 'Все',
+          count: (n, t) => `Показано ${n} из ${t}`,
+          test: 'Тест',
+          builds2: 'обе сборки',
+        },
+      };
+      const EN_EXTRA = {
+        all: 'All',
+        count: (n, t) => `Showing ${n} of ${t}`,
+        test: 'Test',
+        builds2: 'both builds',
+      };
+      const originals = {};
+      document.querySelectorAll('[data-i18n]').forEach((el) => (originals[el.dataset.i18n] = el.textContent));
+      let lang = DEFAULT_LANG,
+        filter = 'all',
+        open = null;
+      try {
+        const s = localStorage.getItem('wqa-lang');
+        if (s === 'en' || s === 'ru') lang = s;
+      } catch (e) {}
+      const t = (k) => (lang === 'ru' ? T.ru[k] : (EN_EXTRA[k] ?? originals[k]));
+      const esc = (s) =>
+        s.replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);
+      function render() {
+        const li = lang === 'ru' ? 1 : 0;
+        document.documentElement.lang = lang;
+        document
+          .querySelectorAll('[data-i18n]')
+          .forEach(
+            (el) =>
+              (el.textContent =
+                lang === 'ru'
+                  ? (T.ru[el.dataset.i18n] ?? originals[el.dataset.i18n])
+                  : originals[el.dataset.i18n]),
+          );
+        document.getElementById('lang-en').setAttribute('aria-pressed', lang === 'en');
+        document.getElementById('lang-ru').setAttribute('aria-pressed', lang === 'ru');
+        const keys = ['all', 'major', 'a11y', 'func', 'seo', 'both'];
+        const label = {
+          all: t('all'),
+          major: 'major',
+          a11y: AREAS.a11y[li],
+          func: AREAS.func[li],
+          seo: 'SEO',
+          both: t('builds2'),
+        };
+        document.getElementById('filters').innerHTML = keys
+          .map(
+            (k) =>
+              `<button type="button" class="chip" data-f="${k}" aria-pressed="${filter === k}">${esc(label[k])}</button>`,
+          )
+          .join('');
+        const rows = D.filter(
+          (d) =>
+            filter === 'all' ||
+            (filter === 'major' && d[1] === 'major') ||
+            (filter === 'both' && d[3].length === 2) ||
+            d[2] === filter,
+        );
+        document.getElementById('rows').innerHTML = rows
+          .map((d) => {
+            const mk = (b) =>
+              d[3].includes(b) ? '<span class="mark f">✗</span>' : '<span class="mark p">✓</span>';
+            const row = `<tr data-id="${d[0]}" tabindex="0" aria-expanded="${open === d[0]}"><td class="mono">${d[0]}</td><td><span class="sev ${d[1]}">${d[1]}</span></td><td>${esc(AREAS[d[2]][li])}</td><td>${esc(d[4 + li])}</td><td class="c">${mk('bugs')}</td><td class="c">${mk('clean')}</td></tr>`;
+            const det =
+              open === d[0]
+                ? `<tr class="detail"><td></td><td colspan="5">${esc(d[6 + li])}<br><span class="mono">${t('test')}: ${esc(d[8])}</span></td></tr>`
+                : '';
+            return row + det;
+          })
+          .join('');
+        document.getElementById('count').textContent = t('count')(rows.length, D.length);
+      }
+      document.addEventListener('click', (e) => {
+        const f = e.target.closest('[data-f]');
+        if (f) {
+          filter = f.dataset.f;
+          render();
+          return;
+        }
+        const r = e.target.closest('tr[data-id]');
+        if (r) {
+          open = open === r.dataset.id ? null : r.dataset.id;
+          render();
+          return;
+        }
+        if (e.target.id === 'lang-en' || e.target.id === 'lang-ru') {
+          lang = e.target.id.slice(5);
+          try {
+            localStorage.setItem('wqa-lang', lang);
+          } catch (err) {}
+          render();
+        }
+      });
+      document.addEventListener('keydown', (e) => {
+        const r = e.target.closest?.('tr[data-id]');
+        if (r && (e.key === 'Enter' || e.key === ' ')) {
+          e.preventDefault();
+          open = open === r.dataset.id ? null : r.dataset.id;
+          render();
+          document.querySelector(`tr[data-id="${r.dataset.id}"]`)?.focus();
+        }
+      });
+      render();
+    </script>
+  </body>
+</html>
