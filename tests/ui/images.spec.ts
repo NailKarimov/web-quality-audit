@@ -21,7 +21,7 @@ test.describe('Images', () => {
   test('no image on the home and product pages is missing (404)', async ({ shop, page }) => {
     knownBug('WQA-5');
     const missing = (await imageStatuses(page)).filter((i) => i.status === 404);
-    await shop.go(shop.productPath());
+    await shop.openFirstProduct();
     missing.push(...(await imageStatuses(page)).filter((i) => i.status === 404));
     // 403 answers are Cloudflare refusing automated image requests on the hosted site, not missing files.
     expect(missing).toEqual([]);

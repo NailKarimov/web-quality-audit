@@ -27,10 +27,8 @@ test.describe('Navigation', () => {
   });
 
   test('a product card opens its product page', async ({ shop, page }) => {
-    const name = await shop.productNames.first().innerText();
-    await shop.productNames.first().click();
-    await expect.poll(() => shop.currentPath()).toMatch(/^\/product\//);
-    await expect(page.locator('[data-test=product-name]')).toHaveText(name);
-    await expect(page.locator('[data-test=add-to-cart]')).toBeVisible();
+    const name = await shop.openFirstProduct();
+    await expect(page.locator('[data-test=unit-price]')).toHaveText(/^\d+\.\d{2}$/);
+    expect(name.length).toBeGreaterThan(2);
   });
 });

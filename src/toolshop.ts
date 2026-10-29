@@ -35,8 +35,19 @@ export class Toolshop {
 
   /** Loads the shop, waits out the Cloudflare check and the first product grid. */
   async open(): Promise<void> {
-    await this.page.goto(this.build.app + '/', { waitUntil: 'domcontentloaded', timeout: 60_000 });
-    for (let i = 0; i < 45 && /just a moment/i.test(await this.page.title()); i++) await sleep(1_000);
+    // The hosted site sometimes does not answer in time, or keeps the Cloudflare check up for a while:
+    // wait up to a minute, then load once more.
+    for (let attempt = 1; ; attempt++) {
+      try {
+        await this.page.goto(this.build.app + '/', { waitUntil: 'domcontentloaded', timeout: 60_000 });
+        for (let i = 0; i < 60 && /just a moment/i.test(await this.page.title()); i++) await sleep(1_000);
+        if (!/just a moment/i.test(await this.page.title())) break;
+        if (attempt === 2) throw new Error('the Cloudflare check did not clear');
+      } catch (error) {
+        if (attempt === 2) throw error;
+      }
+      await sleep(10_000);
+    }
     await expect(this.productNames.first(), 'the product grid did not appear').toBeVisible({
       timeout: 30_000,
     });
@@ -66,8 +77,15 @@ export class Toolshop {
     );
   }
 
-  productPath(id = this.build.productId): string {
-    return `/product/${id}`;
+  /** Opens the first product of the grid the way a user does: by clicking its card. */
+  async openFirstProduct(): Promise<string> {
+    if ((await this.currentPath()) !== '/') await this.go('/');
+    const name = (await this.productNames.first().innerText()).trim();
+    await this.productNames.first().click();
+    await expect.poll(() => this.currentPath()).toMatch(/^\/product\//);
+    await expect(this.page.locator('[data-test=add-to-cart]')).toBeVisible();
+    await expect(this.page.locator('[data-test=product-name]')).toHaveText(name);
+    return name;
   }
 
   /** Prices of the products on the current grid, as numbers. */

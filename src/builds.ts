@@ -15,8 +15,6 @@ export type Build = {
   api: string;
   /** How the Angular router addresses pages: `/#/contact` or `/contact`. */
   router: 'hash' | 'path';
-  /** Id of one product, used to open a product page. */
-  productId: string;
 };
 
 export const BUILDS: Record<BuildName, Build> = {
@@ -25,13 +23,11 @@ export const BUILDS: Record<BuildName, Build> = {
     app: 'https://with-bugs.practicesoftwaretesting.com',
     api: 'https://api-with-bugs.practicesoftwaretesting.com',
     router: 'hash',
-    productId: '1',
   },
   clean: {
     name: 'clean',
     app: 'https://practicesoftwaretesting.com',
     api: 'https://api.practicesoftwaretesting.com',
     router: 'path',
-    productId: '01M61CZS9TBGWXS11FAWMM91Z0',
   },
 };

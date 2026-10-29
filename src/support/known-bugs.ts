@@ -16,7 +16,8 @@ export const KNOWN_BUGS = {
     builds: ['bugs'],
   },
   'WQA-3': {
-    summary: 'Sorting by "Price (Low - High)" lists the most expensive products first',
+    summary:
+      'Sort directions are reversed: "Price (Low - High)" lists the most expensive first, "Name (A - Z)" starts at Z',
     builds: ['bugs'],
   },
   'WQA-4': { summary: 'A category link in the menu points to /category/undefined', builds: ['bugs'] },
@@ -50,6 +51,11 @@ export const KNOWN_BUGS = {
     builds: ['bugs'],
   },
   'WQA-15': { summary: 'The language switcher is missing', builds: ['bugs'] },
+  'WQA-16': {
+    summary: 'Login form: Tab from the e-mail field does not move to the password field (WCAG 2.4.3)',
+    builds: ['bugs'],
+  },
+  'WQA-17': { summary: 'A search without results shows an empty grid and no message', builds: ['bugs'] },
 } as const satisfies Record<string, { summary: string; builds: readonly BuildName[] }>;
 
 export type KnownBugId = keyof typeof KNOWN_BUGS;

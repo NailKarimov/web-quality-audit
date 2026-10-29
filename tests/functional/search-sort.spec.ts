@@ -12,11 +12,14 @@ test.describe('Search and sorting', () => {
     for (const n of names) expect(n, 'every result mentions pliers').toMatch(/plier/i);
   });
 
-  test('search for a word that no product has shows no products', async ({ shop, page }) => {
+  test('a search without results says so', async ({ shop, page }) => {
+    knownBug('WQA-17');
     await shop.search.fill('zzqx-no-such-tool');
     await shop.searchSubmit.click();
     await expect(shop.productNames).toHaveCount(0);
-    await expect(page.getByText(/no products|there are no/i).first()).toBeVisible();
+    await expect(
+      page.getByText(/no (products|results)|nothing (was )?found|there are no/i).first(),
+    ).toBeVisible();
   });
 
   test('"Price (Low - High)" sorts by price, cheapest first', async ({ shop }) => {
@@ -30,6 +33,7 @@ test.describe('Search and sorting', () => {
   });
 
   test('"Price (High - Low)" sorts by price, most expensive first', async ({ shop }) => {
+    knownBug('WQA-3');
     const before = await shop.productNames.first().innerText();
     await shop.sort.selectOption({ label: 'Price (High - Low)' });
     await shop.waitForGridChange(before);
@@ -38,9 +42,10 @@ test.describe('Search and sorting', () => {
   });
 
   test('"Name (A - Z)" sorts alphabetically', async ({ shop }) => {
+    knownBug('WQA-3');
     const before = await shop.productNames.first().innerText();
     await shop.sort.selectOption({ label: 'Name (A - Z)' });
-    await shop.waitForGridChange(before).catch(() => {});
+    await shop.waitForGridChange(before);
     const names = (await shop.productNames.allInnerTexts()).map((n) => n.trim());
     expect(names).toEqual([...names].sort((a, b) => a.localeCompare(b)));
   });

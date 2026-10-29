@@ -11,7 +11,7 @@ import type { BuildName } from './src/builds';
  */
 export default defineConfig<{ buildName: BuildName }>({
   testDir: './tests',
-  timeout: 120_000,
+  timeout: 240_000,
   expect: { timeout: 15_000 },
   forbidOnly: !!process.env.CI,
   fullyParallel: false,

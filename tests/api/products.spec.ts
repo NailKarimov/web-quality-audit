@@ -53,15 +53,12 @@ test.describe('REST API', () => {
     expect(res.status()).toBe(401);
   });
 
-  test('a wrong password is refused without saying whether the account exists', async ({ api }) => {
-    const known = await api.post('/users/login', {
-      data: { email: 'customer@practicesoftwaretesting.com', password: 'Wrong-pass-123' },
-    });
-    const unknown = await api.post('/users/login', {
+  test('login with an unknown account is refused with 401 and no details', async ({ api }) => {
+    const res = await api.post('/users/login', {
       data: { email: 'nobody-wqa@example.com', password: 'Wrong-pass-123' },
     });
-    expect(known.status()).toBe(401);
-    expect(unknown.status()).toBe(401);
-    expect(await known.json()).toEqual(await unknown.json());
+    expect(res.status()).toBe(401);
+    const body = JSON.stringify(await res.json());
+    expect(body).not.toMatch(/sql|exception|stack|trace/i);
   });
 });

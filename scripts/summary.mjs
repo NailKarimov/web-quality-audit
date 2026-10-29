@@ -23,7 +23,9 @@ for (const r of latest.values()) {
   else if (r.status === 'skipped') row.skipped++;
   else {
     row.failed++;
-    problems.push(`- **${r.build}** ${r.name}: ${(r.statusDetails?.message ?? '').split('\n')[0].slice(0, 200)}`);
+    problems.push(
+      `- **${r.build}** ${r.name}: ${(r.statusDetails?.message ?? '').split('\n')[0].slice(0, 200)}`,
+    );
   }
 }
 

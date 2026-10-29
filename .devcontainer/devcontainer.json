@@ -1,0 +1,10 @@
+{
+  "name": "web-quality-audit",
+  "image": "mcr.microsoft.com/devcontainers/universal:2",
+  "postCreateCommand": "npm ci && npx playwright install --with-deps chrome",
+  "customizations": {
+    "codespaces": {
+      "openFiles": ["README.md"]
+    }
+  }
+}

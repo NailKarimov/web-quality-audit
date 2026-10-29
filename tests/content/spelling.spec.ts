@@ -9,7 +9,7 @@ test.describe('Content', () => {
     await expect
       .soft(page.getByRole('heading', { name: 'Sort', exact: true }), 'filter heading')
       .toBeVisible();
-    await shop.go(shop.productPath());
+    await shop.openFirstProduct();
     await expect
       .soft(page.getByRole('heading', { name: 'Related products', exact: true }), 'product page heading')
       .toBeVisible();

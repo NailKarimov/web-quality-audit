@@ -78,6 +78,10 @@ jobs:
         if: always()
         run: npx allure generate allure-results -o allure-report --clean
 
+      - name: Add the visual guide to the report site
+        if: always()
+        run: cp docs/*.html allure-report/
+
       - name: Write a run summary
         if: always()
         run: node scripts/summary.mjs >> "$GITHUB_STEP_SUMMARY" || true
